@@ -65,14 +65,15 @@ protected:
 	virtual const StringName *_get_extension_class_name() const; // This is needed to retrieve the class name before the godot object has its _extension and _extension_instance members assigned.
 	virtual const GDExtensionInstanceBindingCallbacks *_get_bindings_callbacks() const = 0;
 
-	void _notification(int p_what) {}
-	bool _set(const StringName &p_name, const Variant &p_property) { return false; }
-	bool _get(const StringName &p_name, Variant &r_property) const { return false; }
-	void _get_property_list(List<PropertyInfo> *p_list) const {}
-	bool _property_can_revert(const StringName &p_name) const { return false; }
-	bool _property_get_revert(const StringName &p_name, Variant &r_property) const { return false; }
-	void _validate_property(PropertyInfo &p_property) const {}
-	String _to_string() const { return "[" + String(get_class_static()) + ":" + itos(get_instance_id()) + "]"; }
+	virtual void _init() {}
+	virtual void _notification(int p_what) {}
+	virtual bool _set(const StringName &p_name, const Variant &p_property) { return false; }
+	virtual bool _get(const StringName &p_name, Variant &r_property) const { return false; }
+	virtual void _get_property_list(List<PropertyInfo> *p_list) const {}
+	virtual bool _property_can_revert(const StringName &p_name) const { return false; }
+	virtual bool _property_get_revert(const StringName &p_name, Variant &r_property) const { return false; }
+	virtual void _validate_property(PropertyInfo &p_property) const {}
+	virtual String _to_string() const { return "[" + String(get_class_static()) + ":" + itos(get_instance_id()) + "]"; }
 
 	static void notification_bind(GDExtensionClassInstancePtr p_instance, int32_t p_what, GDExtensionBool p_reversed) {}
 	static GDExtensionBool set_bind(GDExtensionClassInstancePtr p_instance, GDExtensionConstStringNamePtr p_name, GDExtensionConstVariantPtr p_value) { return false; }
@@ -160,6 +161,7 @@ struct EngineClassRegistration {
 private:                                                                                                                                                                               \
 	void operator=(const m_class &p_rval) {}                                                                                                                                           \
 	friend class ::godot::ClassDB;                                                                                                                                                     \
+	typedef m_inherits Super;																																						   \
                                                                                                                                                                                        \
 protected:                                                                                                                                                                             \
 	virtual const ::godot::StringName *_get_extension_class_name() const override {                                                                                                    \

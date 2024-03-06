@@ -51,6 +51,7 @@ list( APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/" )
 set( compiler_is_clang "$<OR:$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:Clang>>" )
 set( compiler_is_gnu "$<CXX_COMPILER_ID:GNU>" )
 set( compiler_is_msvc "$<CXX_COMPILER_ID:MSVC>" )
+set( compiler_is_clang-cl "$<AND:$<CXX_COMPILER_ID:Clang>,$<STREQUAL:${CMAKE_CXX_SIMULATE_ID},MSVC>>" )
 
 # Default build type is Debug in the SConstruct
 if("${CMAKE_BUILD_TYPE}" STREQUAL "")
@@ -163,9 +164,11 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 		DEBUG_ENABLED
 		DEBUG_METHODS_ENABLED
 	>
-	$<${compiler_is_msvc}:
+	$<$<OR:${compiler_is_msvc},${compiler_is_clang-cl}>:
 		TYPED_METHOD_BIND
 	>
+
+	GODOT_CPP
 )
 
 target_link_options(${PROJECT_NAME} PRIVATE

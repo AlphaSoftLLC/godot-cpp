@@ -35,6 +35,13 @@
 
 namespace godot {
 
+const Vector2i Vector2i::Zero	{ 0, 0 };
+const Vector2i Vector2i::One	{ 1, 1 };
+const Vector2i Vector2i::Left	{ -1, 0 };
+const Vector2i Vector2i::Right	{ 1, 0 };
+const Vector2i Vector2i::Up		{ 0, -1 };
+const Vector2i Vector2i::Down	{ 0, 1 };
+
 Vector2i Vector2i::clamp(const Vector2i &p_min, const Vector2i &p_max) const {
 	return Vector2i(
 			CLAMP(x, p_min.x, p_max.x),

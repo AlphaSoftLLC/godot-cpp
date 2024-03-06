@@ -34,6 +34,34 @@
 
 namespace godot {
 
+const Transform3D Transform3D::Identity {
+	1.0f, 0.0f, 0.0f,
+	0.0f, 1.0f, 0.0f,
+	0.0f, 0.0f, 1.0f,
+	0.0f, 0.0f, 0.0f
+};
+
+const Transform3D Transform3D::FlipX {
+	-1.0f, 0.0f, 0.0f,
+	0.0f, 1.0f, 0.0f,
+	0.0f, 0.0f, 1.0f,
+	0.0f, 0.0f, 0.0f
+};
+
+const Transform3D Transform3D::FlipY {
+	1.0f, 0.0f, 0.0f,
+	0.0f, -1.0f, 0.0f,
+	0.0f, 0.0f, 1.0f,
+	0.0f, 0.0f, 0.0f
+};
+
+const Transform3D Transform3D::FlipZ {
+	1.0f, 0.0f, 0.0f,
+	0.0f, 1.0f, 0.0f,
+	0.0f, 0.0f, -1.0f,
+	0.0f, 0.0f, 0.0f
+};
+
 void Transform3D::affine_invert() {
 	basis.invert();
 	origin = basis.xform(-origin);

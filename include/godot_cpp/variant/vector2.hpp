@@ -42,6 +42,14 @@ struct Vector2i;
 struct _NO_DISCARD_ Vector2 {
 	static const int AXIS_COUNT = 2;
 
+	static const Vector2 Zero;
+	static const Vector2 One;
+	static const Vector2 Inf;
+	static const Vector2 Left;
+	static const Vector2 Right;
+	static const Vector2 Up;
+	static const Vector2 Down;
+
 	enum Axis {
 		AXIS_X,
 		AXIS_Y,
@@ -321,3 +329,4 @@ typedef Vector2 Point2;
 } // namespace godot
 
 #endif // GODOT_VECTOR2_HPP
+

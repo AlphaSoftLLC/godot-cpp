@@ -40,6 +40,11 @@
 namespace godot {
 
 struct _NO_DISCARD_ Transform3D {
+	static const Transform3D Identity;
+	static const Transform3D FlipX;
+	static const Transform3D FlipY;
+	static const Transform3D FlipZ;
+
 	Basis basis;
 	Vector3 origin;
 

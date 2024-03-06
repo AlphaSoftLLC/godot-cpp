@@ -36,9 +36,32 @@ target_compile_options( ${PROJECT_NAME} PRIVATE
     >
 
     # Clang only
-    $<${compiler_is_clang}:
+    $<$<OR:${compiler_is_clang},${compiler_is_clang-cl}>:
         -Wimplicit-fallthrough
         -Wno-ordered-compare-function-pointers
+        -Wno-unsafe-buffer-usage
+        -Wno-c++98-compat-pedantic
+        -Wno-old-style-cast
+        -Wno-newline-eof
+        -Wno-shorten-64-to-32
+        -Wno-unknown-argument
+        -Wno-sign-conversion
+        -Wno-implicit-int-conversion
+        -Wno-unused-command-line-argument
+        -Wno-global-constructors
+        -Wno-float-equal
+        -Wno-implicit-float-conversion
+        -Wno-double-promotion
+        -Wno-float-conversion
+        -Wno-exit-time-destructors
+        -Wno-missing-prototypes
+        -Wno-sign-compare
+        -Wno-cast-align
+        -Wno-cast-qual
+        -Wno-cast-function-type-strict
+        -Wno-extra-semi-stmt
+        -Wno-covered-switch-default
+        -Wno-header-hygiene
     >
 
     # GNU only

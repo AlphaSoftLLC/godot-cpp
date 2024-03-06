@@ -44,6 +44,16 @@ struct Vector3i;
 struct _NO_DISCARD_ Vector3 {
 	static const int AXIS_COUNT = 3;
 
+	static const Vector3 Zero;
+	static const Vector3 One;
+	static const Vector3 Inf;
+	static const Vector3 Left;
+	static const Vector3 Right;
+	static const Vector3 Up;
+	static const Vector3 Down;
+	static const Vector3 Forward;
+	static const Vector3 Back;
+
 	enum Axis {
 		AXIS_X,
 		AXIS_Y,

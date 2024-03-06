@@ -35,6 +35,10 @@
 
 namespace godot {
 
+const Plane Plane::PlaneYZ   { 1.0f, 0.0f, 0.0f, 0.0f };
+const Plane Plane::PlaneXZ   { 0.0f, 1.0f, 0.0f, 0.0f };
+const Plane Plane::PlaneXY   { 0.0f, 0.0f, 1.0f, 0.0f };
+
 void Plane::set_normal(const Vector3 &p_normal) {
 	normal = p_normal;
 }

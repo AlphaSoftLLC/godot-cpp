@@ -1489,6 +1489,27 @@ def generate_engine_class_header(class_api, used_classes, fully_used_classes, us
             result.append(f'\tstatic const {value["type"]} {value["name"]} = {value["value"]};')
         result.append("")
 
+    if "signals" in class_api:
+        result.append('\tstatic struct Signals')
+        result.append('\t{')
+        for signal in class_api["signals"]:
+            args_commentary = '\t\t// '
+
+            if "arguments" in signal:
+                args_commentary += f'{signal["name"]}('
+                for argument in signal["arguments"]:
+                    args_commentary += f'{argument["type"]} {argument["name"]}, '
+                    pass
+                args_commentary = args_commentary.strip(', ')
+                args_commentary += ')'
+
+            result.append(args_commentary)
+
+            result.append(f'\t\tinline static const char* {signal["name"]} = "{signal["name"]}";')
+            result.append('')
+        result.append('\t};')
+        result.append('')
+
     if is_singleton:
         result.append(f"\tstatic {class_name} *get_singleton();")
         result.append("")

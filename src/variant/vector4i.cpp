@@ -35,6 +35,9 @@
 
 namespace godot {
 
+const Vector4i Vector4i::Zero	{ 0, 0, 0, 0 };
+const Vector4i Vector4i::One	{ 1, 1, 1, 1 };
+
 Vector4i::Axis Vector4i::min_axis_index() const {
 	uint32_t min_index = 0;
 	int32_t min_value = x;
