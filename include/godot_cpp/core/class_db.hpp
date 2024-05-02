@@ -203,6 +203,8 @@ public:
 template <typename T, bool is_abstract>
 void ClassDB::_register_class(bool p_virtual, bool p_exposed, bool p_runtime) {
 	static_assert(TypesAreSame<typename T::self_type, T>::value, "Class not declared properly, please use GDCLASS.");
+	static_assert(!FunctionsAreSame<T::self_type::_bind_methods, T::parent_type::_bind_methods>::value, "Class must declare 'static void _bind_methods'.");
+	static_assert(!std::is_abstract_v<T> || is_abstract, "Class is abstract, please use GDREGISTER_ABSTRACT_CLASS.");
 	instance_binding_callbacks[T::get_class_static()] = &T::_gde_binding_callbacks;
 
 	// Register this class within our plugin
@@ -336,5 +338,7 @@ MethodBind *ClassDB::bind_vararg_method(uint32_t p_flags, StringName p_name, M p
 #define GDREGISTER_RUNTIME_CLASS(m_class) ClassDB::register_runtime_class<m_class>();
 
 } // namespace godot
+
+CLASSDB_SINGLETON_VARIANT_CAST;
 
 #endif // GODOT_CLASS_DB_HPP
