@@ -46,6 +46,8 @@ class ClassDB;
 
 typedef void GodotObject;
 
+#define SIGNAL_NAME(Name) inline static auto Name = #Name
+
 // Base for all engine classes, to contain the pointer to the engine instance.
 class Wrapped {
 	friend class GDExtensionBinding;

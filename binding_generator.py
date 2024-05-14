@@ -545,6 +545,8 @@ def generate_builtin_class_header(builtin_api, size, used_classes, fully_used_cl
         result.append("#include <godot_cpp/variant/vector2.hpp>")
     if class_name == "PackedVector3Array":
         result.append("#include <godot_cpp/variant/vector3.hpp>")
+    if class_name == "PackedVector4Array":
+        result.append("#include <godot_cpp/variant/vector4.hpp>")
 
     if is_packed_array(class_name):
         result.append("#include <godot_cpp/core/error_macros.hpp>")
@@ -1504,6 +1506,10 @@ def generate_engine_class_header(class_api, used_classes, fully_used_classes, us
         result.append(f"\tGDEXTENSION_CLASS({class_name}, {inherits})")
     result.append("")
 
+    if is_singleton:
+        result.append(f"\tstatic {class_name} *singleton;")
+        result.append("")
+
     result.append("public:")
     result.append("")
 
@@ -1605,6 +1611,11 @@ def generate_engine_class_header(class_api, used_classes, fully_used_classes, us
 
     result.append("\t}")
     result.append("")
+
+    if is_singleton:
+        result.append(f"\t~{class_name}();")
+        result.append("")
+
     result.append("public:")
 
     # Special cases.
@@ -1754,6 +1765,7 @@ def generate_engine_class_source(class_api, used_classes, fully_used_classes, us
 
     result.append(f"#include <godot_cpp/classes/{snake_class_name}.hpp>")
     result.append("")
+    result.append("#include <godot_cpp/core/class_db.hpp>")
     result.append("#include <godot_cpp/core/engine_ptrcall.hpp>")
     result.append("#include <godot_cpp/core/error_macros.hpp>")
     result.append("")
@@ -1768,9 +1780,10 @@ def generate_engine_class_source(class_api, used_classes, fully_used_classes, us
     result.append("")
 
     if is_singleton:
+        result.append(f"{class_name} *{class_name}::singleton = nullptr;")
+        result.append("")
         result.append(f"{class_name} *{class_name}::get_singleton() {{")
         # We assume multi-threaded access is OK because each assignment will assign the same value every time
-        result.append(f"\tstatic {class_name} *singleton = nullptr;")
         result.append("\tif (unlikely(singleton == nullptr)) {")
         result.append(
             f"\t\tGDExtensionObjectPtr singleton_obj = internal::gdextension_interface_global_get_singleton({class_name}::get_class_static()._native_ptr());"
@@ -1784,8 +1797,19 @@ def generate_engine_class_source(class_api, used_classes, fully_used_classes, us
         result.append("#ifdef DEBUG_ENABLED")
         result.append("\t\tERR_FAIL_NULL_V(singleton, nullptr);")
         result.append("#endif // DEBUG_ENABLED")
+        result.append("\t\tif (likely(singleton)) {")
+        result.append(f"\t\t\tClassDB::_register_engine_singleton({class_name}::get_class_static(), singleton);")
+        result.append("\t\t}")
         result.append("\t}")
         result.append("\treturn singleton;")
+        result.append("}")
+        result.append("")
+
+        result.append(f"{class_name}::~{class_name}() {{")
+        result.append("\tif (singleton == this) {")
+        result.append(f"\t\tClassDB::_unregister_engine_singleton({class_name}::get_class_static());")
+        result.append("\t\tsingleton = nullptr;")
+        result.append("\t}")
         result.append("}")
         result.append("")
 
@@ -2466,6 +2490,7 @@ def is_packed_array(type_name):
         "PackedStringArray",
         "PackedVector2Array",
         "PackedVector3Array",
+        "PackedVector4Array",
     ]
 
 

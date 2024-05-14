@@ -45,6 +45,7 @@
 #include <godot_cpp/variant/callable_method_pointer.hpp>
 
 #include <list>
+#include <mutex>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -104,6 +105,8 @@ private:
 	static std::unordered_map<StringName, const GDExtensionInstanceBindingCallbacks *> instance_binding_callbacks;
 	// Used to remember the custom class registration order.
 	static std::vector<StringName> class_register_order;
+	static std::unordered_map<StringName, Object *> engine_singletons;
+	static std::mutex engine_singletons_mutex;
 
 	static MethodBind *bind_methodfi(uint32_t p_flags, MethodBind *p_bind, const MethodDefinition &method_name, const void **p_defs, int p_defcount);
 	static void initialize_class(const ClassInfo &cl);
@@ -151,6 +154,21 @@ public:
 
 	_FORCE_INLINE_ static void _register_engine_class(const StringName &p_name, const GDExtensionInstanceBindingCallbacks *p_callbacks) {
 		instance_binding_callbacks[p_name] = p_callbacks;
+	}
+
+	static void _register_engine_singleton(const StringName &p_class_name, Object *p_singleton) {
+		std::lock_guard<std::mutex> lock(engine_singletons_mutex);
+		std::unordered_map<StringName, Object *>::const_iterator i = engine_singletons.find(p_class_name);
+		if (i != engine_singletons.end()) {
+			ERR_FAIL_COND((*i).second != p_singleton);
+			return;
+		}
+		engine_singletons[p_class_name] = p_singleton;
+	}
+
+	static void _unregister_engine_singleton(const StringName &p_class_name) {
+		std::lock_guard<std::mutex> lock(engine_singletons_mutex);
+		engine_singletons.erase(p_class_name);
 	}
 
 	template <typename N, typename M, typename... VarArgs>
@@ -229,7 +247,7 @@ void ClassDB::_register_class(bool p_virtual, bool p_exposed, bool p_runtime) {
 		T::set_bind, // GDExtensionClassSet set_func;
 		T::get_bind, // GDExtensionClassGet get_func;
 		T::has_get_property_list() ? T::get_property_list_bind : nullptr, // GDExtensionClassGetPropertyList get_property_list_func;
-		T::free_property_list_bind, // GDExtensionClassFreePropertyList free_property_list_func;
+		T::free_property_list_bind, // GDExtensionClassFreePropertyList2 free_property_list_func;
 		T::property_can_revert_bind, // GDExtensionClassPropertyCanRevert property_can_revert_func;
 		T::property_get_revert_bind, // GDExtensionClassPropertyGetRevert property_get_revert_func;
 		T::validate_property_bind, // GDExtensionClassValidateProperty validate_property_func;
