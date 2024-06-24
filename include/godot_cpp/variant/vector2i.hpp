@@ -42,13 +42,6 @@ struct Vector2;
 struct _NO_DISCARD_ Vector2i {
 	static const int AXIS_COUNT = 2;
 
-	static const Vector2i Zero;
-	static const Vector2i One;
-	static const Vector2i Left;
-	static const Vector2i Right;
-	static const Vector2i Up;
-	static const Vector2i Down;
-
 	enum Axis {
 		AXIS_X,
 		AXIS_Y,
@@ -151,6 +144,15 @@ struct _NO_DISCARD_ Vector2i {
 		x = p_x;
 		y = p_y;
 	}
+
+	static const Vector2i Zero;
+	static const Vector2i One;
+	static const Vector2i Min;
+	static const Vector2i Max;
+	static const Vector2i Left;
+	static const Vector2i Right;
+	static const Vector2i Up;
+	static const Vector2i Down;
 };
 
 // Multiplication operators required to workaround issues with LLVM using implicit conversion.

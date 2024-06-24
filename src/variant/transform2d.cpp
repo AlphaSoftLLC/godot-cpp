@@ -34,6 +34,21 @@
 
 namespace godot {
 
+const Transform2D Transform2D::Identity {
+	1.0f, 0.0f, 0.0f,
+	1.0f, 0.0f, 0.0f
+};
+
+const Transform2D Transform2D::FlipX {
+	-1.0f, 0.0f, 0.0f,
+	1.0f, 0.0f, 0.0f
+};
+
+const Transform2D Transform2D::FlipY {
+	1.0f, 0.0f, 0.0f,
+	-1.0f, 0.0f, 0.0f
+};
+
 void Transform2D::invert() {
 	// FIXME: this function assumes the basis is a rotation matrix, with no scaling.
 	// Transform2D::affine_inverse can handle matrices with scaling, so GDScript should eventually use that.

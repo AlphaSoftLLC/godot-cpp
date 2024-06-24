@@ -53,6 +53,12 @@ struct _NO_DISCARD_ Vector3 {
 	static const Vector3 Down;
 	static const Vector3 Forward;
 	static const Vector3 Back;
+	static const Vector3 ModelLeft;
+	static const Vector3 ModelRight;
+	static const Vector3 ModelTop;
+	static const Vector3 ModelBottom;
+	static const Vector3 ModelFront;
+	static const Vector3 ModelRear;
 
 	enum Axis {
 		AXIS_X,

@@ -38,7 +38,6 @@ namespace godot {
 class String;
 
 struct _NO_DISCARD_ Color {
-
 	static const Color AliceBlue;
 	static const Color AntiqueWhite;
 	static const Color Aqua;

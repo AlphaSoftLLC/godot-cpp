@@ -340,4 +340,3 @@ typedef Vector2 Point2;
 } // namespace godot
 
 #endif // GODOT_VECTOR2_HPP
-

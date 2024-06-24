@@ -35,6 +35,17 @@
 
 namespace godot {
 
+const Vector3i Vector3i::Zero	{ 0, 0, 0 };
+const Vector3i Vector3i::One	{ 1, 1, 1 };
+const Vector3i Vector3i::Min	{ -2147483648, -2147483648, -2147483648 };
+const Vector3i Vector3i::Max	{ 2147483647, 2147483647, 2147483647 };
+const Vector3i Vector3i::Left	{ -1, 0, 0 };
+const Vector3i Vector3i::Right	{ 1, 0, 0 };
+const Vector3i Vector3i::Up		{ 0, 1, 0 };
+const Vector3i Vector3i::Down	{ 0, -1, 0 };
+const Vector3i Vector3i::Forward{ 0, 0, -1 };
+const Vector3i Vector3i::Back	{ 0, 0, 1 };
+
 Vector3i Vector3i::snapped(const Vector3i &p_step) const {
 	return Vector3i(
 			Math::snapped(x, p_step.x),

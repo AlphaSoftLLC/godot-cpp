@@ -132,12 +132,12 @@ execute_process(COMMAND "${Python3_EXECUTABLE}" "-c" "import binding_generator; 
 )
 
 add_custom_command(OUTPUT ${GENERATED_FILES_LIST}
-		COMMAND "${Python3_EXECUTABLE}" "-c" "import binding_generator; binding_generator.generate_bindings(\"${GODOT_GDEXTENSION_API_FILE}\", \"${GENERATE_BINDING_PARAMETERS}\", \"${BITS}\", \"${FLOAT_PRECISION}\", \"${CMAKE_CURRENT_BINARY_DIR}\")"
-		VERBATIM
-		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-		MAIN_DEPENDENCY ${GODOT_GDEXTENSION_API_FILE}
-		DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/binding_generator.py
-		COMMENT "Generating bindings"
+	COMMAND "${Python3_EXECUTABLE}" "-c" "import binding_generator; binding_generator.generate_bindings(\"${GODOT_GDEXTENSION_API_FILE}\", \"${GENERATE_BINDING_PARAMETERS}\", \"${BITS}\", \"${FLOAT_PRECISION}\", \"${CMAKE_CURRENT_BINARY_DIR}\")"
+	VERBATIM
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	MAIN_DEPENDENCY ${GODOT_GDEXTENSION_API_FILE}
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/binding_generator.py
+	COMMENT "Generating bindings"
 )
 
 # Get Sources
@@ -146,9 +146,9 @@ file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS include/*.h**)
 
 # Define our godot-cpp library
 add_library(${PROJECT_NAME} STATIC
-		${SOURCES}
-		${HEADERS}
-		${GENERATED_FILES_LIST}
+	${SOURCES}
+	${HEADERS}
+	${GENERATED_FILES_LIST}
 )
 add_library(godot::cpp ALIAS ${PROJECT_NAME})
 
@@ -156,16 +156,16 @@ include(GodotCompilerWarnings)
 
 target_compile_features(${PROJECT_NAME}
 	PRIVATE
-		cxx_std_17
+	cxx_std_17
 )
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC
 	$<$<CONFIG:Debug>:
-		DEBUG_ENABLED
-		DEBUG_METHODS_ENABLED
+	DEBUG_ENABLED
+	DEBUG_METHODS_ENABLED
 	>
 	$<$<OR:${compiler_is_msvc},${compiler_is_clang-cl}>:
-		TYPED_METHOD_BIND
+	TYPED_METHOD_BIND
 	>
 
 	GODOT_CPP
@@ -173,9 +173,9 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 
 target_link_options(${PROJECT_NAME} PRIVATE
 	$<$<NOT:${compiler_is_msvc}>:
-		-static-libgcc
-		-static-libstdc++
-		-Wl,-R,'$$ORIGIN'
+	-static-libgcc
+	-static-libstdc++
+	-Wl,-R,'$$ORIGIN'
 	>
 )
 
@@ -210,10 +210,10 @@ endif()
 
 set_target_properties(${PROJECT_NAME}
 	PROPERTIES
-		CXX_EXTENSIONS OFF
-		POSITION_INDEPENDENT_CODE ON
-		ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin"
-		LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin"
-		RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin"
-		OUTPUT_NAME "${OUTPUT_NAME}"
+	CXX_EXTENSIONS OFF
+	POSITION_INDEPENDENT_CODE ON
+	ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin"
+	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin"
+	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin"
+	OUTPUT_NAME "${OUTPUT_NAME}"
 )

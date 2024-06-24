@@ -35,6 +35,15 @@
 
 namespace godot {
 
+const Vector2i Vector2i::Zero	{ 0, 0 };
+const Vector2i Vector2i::One	{ 1, 1 };
+const Vector2i Vector2i::Min	{ -2147483648, -2147483648 };
+const Vector2i Vector2i::Max	{ 2147483647, 2147483647 };
+const Vector2i Vector2i::Left	{ -1, 0 };
+const Vector2i Vector2i::Right	{ 1, 0 };
+const Vector2i Vector2i::Up		{ 0, -1 };
+const Vector2i Vector2i::Down   { 0, 1 };
+
 Vector2i Vector2i::snapped(const Vector2i &p_step) const {
 	return Vector2i(
 			Math::snapped(x, p_step.x),

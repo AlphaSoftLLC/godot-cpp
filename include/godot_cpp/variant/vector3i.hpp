@@ -44,6 +44,8 @@ struct _NO_DISCARD_ Vector3i {
 
 	static const Vector3i Zero;
 	static const Vector3i One;
+	static const Vector3i Min;
+	static const Vector3i Max;
 	static const Vector3i Left;
 	static const Vector3i Right;
 	static const Vector3i Up;

@@ -51,6 +51,10 @@ struct _NO_DISCARD_ Transform2D {
 	// Warning #2: 2D be aware that unlike 3D code, 2D code uses a left-handed coordinate system: Y-axis points down,
 	// and angle is measure from +X to +Y in a clockwise-fashion.
 
+	static const Transform2D Identity;
+	static const Transform2D FlipX;
+	static const Transform2D FlipY;
+
 	Vector2 columns[3];
 
 	_FORCE_INLINE_ real_t tdotx(const Vector2 &v) const { return columns[0][0] * v.x + columns[1][0] * v.y; }
