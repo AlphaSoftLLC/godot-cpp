@@ -181,9 +181,14 @@ struct EngineClassRegistration {
 // Note: the trail of `***` is to keep sane diffs in PRs, because clang-format otherwise moves every `\` which makes
 // every line of the macro different
 #define GDCLASS(m_class, m_inherits) /***********************************************************************************************************************************************/ \
+<<<<<<< HEAD
 private:																																											   \
 	typedef m_inherits Super;																																						   \
 	void operator=(const m_class &p_rval) {}                                                                                                                                           \
+=======
+private:                                                                                                                                                                               \
+	void operator=(const m_class & /*p_rval*/) {}                                                                                                                                      \
+>>>>>>> remote/4.3
 	friend class ::godot::ClassDB;                                                                                                                                                     \
 	friend class ::godot::Wrapped;                                                                                                                                                     \
                                                                                                                                                                                        \
@@ -278,23 +283,27 @@ public:                                                                         
 	}                                                                                                                                                                                  \
                                                                                                                                                                                        \
 	static GDExtensionBool set_bind(GDExtensionClassInstancePtr p_instance, GDExtensionConstStringNamePtr p_name, GDExtensionConstVariantPtr p_value) {                                \
-		if (p_instance && m_class::_get_set()) {                                                                                                                                       \
+		if (p_instance) {                                                                                                                                                              \
+			if (m_inherits::set_bind(p_instance, p_name, p_value)) {                                                                                                                   \
+				return true;                                                                                                                                                           \
+			}                                                                                                                                                                          \
 			if (m_class::_get_set() != m_inherits::_get_set()) {                                                                                                                       \
 				m_class *cls = reinterpret_cast<m_class *>(p_instance);                                                                                                                \
 				return cls->_set(*reinterpret_cast<const ::godot::StringName *>(p_name), *reinterpret_cast<const ::godot::Variant *>(p_value));                                        \
 			}                                                                                                                                                                          \
-			return m_inherits::set_bind(p_instance, p_name, p_value);                                                                                                                  \
 		}                                                                                                                                                                              \
 		return false;                                                                                                                                                                  \
 	}                                                                                                                                                                                  \
                                                                                                                                                                                        \
 	static GDExtensionBool get_bind(GDExtensionClassInstancePtr p_instance, GDExtensionConstStringNamePtr p_name, GDExtensionVariantPtr r_ret) {                                       \
-		if (p_instance && m_class::_get_get()) {                                                                                                                                       \
+		if (p_instance) {                                                                                                                                                              \
+			if (m_inherits::get_bind(p_instance, p_name, r_ret)) {                                                                                                                     \
+				return true;                                                                                                                                                           \
+			}                                                                                                                                                                          \
 			if (m_class::_get_get() != m_inherits::_get_get()) {                                                                                                                       \
 				m_class *cls = reinterpret_cast<m_class *>(p_instance);                                                                                                                \
 				return cls->_get(*reinterpret_cast<const ::godot::StringName *>(p_name), *reinterpret_cast<::godot::Variant *>(r_ret));                                                \
 			}                                                                                                                                                                          \
-			return m_inherits::get_bind(p_instance, p_name, r_ret);                                                                                                                    \
 		}                                                                                                                                                                              \
 		return false;                                                                                                                                                                  \
 	}                                                                                                                                                                                  \
@@ -316,7 +325,7 @@ public:                                                                         
 		return ::godot::internal::create_c_property_list(plist_cpp, r_count);                                                                                                          \
 	}                                                                                                                                                                                  \
                                                                                                                                                                                        \
-	static void free_property_list_bind(GDExtensionClassInstancePtr p_instance, const GDExtensionPropertyInfo *p_list, uint32_t p_count) {                                             \
+	static void free_property_list_bind(GDExtensionClassInstancePtr p_instance, const GDExtensionPropertyInfo *p_list, uint32_t /*p_count*/) {                                         \
 		if (p_instance) {                                                                                                                                                              \
 			m_class *cls = reinterpret_cast<m_class *>(p_instance);                                                                                                                    \
 			cls->plist_owned.clear();                                                                                                                                                  \
@@ -373,7 +382,7 @@ public:                                                                         
 		}                                                                                                                                                                              \
 	}                                                                                                                                                                                  \
                                                                                                                                                                                        \
-	static void free(void *data, GDExtensionClassInstancePtr ptr) {                                                                                                                    \
+	static void free(void * /*data*/, GDExtensionClassInstancePtr ptr) {                                                                                                               \
 		if (ptr) {                                                                                                                                                                     \
 			m_class *cls = reinterpret_cast<m_class *>(ptr);                                                                                                                           \
 			cls->~m_class();                                                                                                                                                           \
@@ -381,14 +390,14 @@ public:                                                                         
 		}                                                                                                                                                                              \
 	}                                                                                                                                                                                  \
                                                                                                                                                                                        \
-	static void *_gde_binding_create_callback(void *p_token, void *p_instance) {                                                                                                       \
+	static void *_gde_binding_create_callback(void * /*p_token*/, void * /*p_instance*/) {                                                                                             \
 		return nullptr;                                                                                                                                                                \
 	}                                                                                                                                                                                  \
                                                                                                                                                                                        \
-	static void _gde_binding_free_callback(void *p_token, void *p_instance, void *p_binding) {                                                                                         \
+	static void _gde_binding_free_callback(void * /*p_token*/, void * /*p_instance*/, void * /*p_binding*/) {                                                                          \
 	}                                                                                                                                                                                  \
                                                                                                                                                                                        \
-	static GDExtensionBool _gde_binding_reference_callback(void *p_token, void *p_instance, GDExtensionBool p_reference) {                                                             \
+	static GDExtensionBool _gde_binding_reference_callback(void * /*p_token*/, void * /*p_instance*/, GDExtensionBool /*p_reference*/) {                                               \
 		return true;                                                                                                                                                                   \
 	}                                                                                                                                                                                  \
                                                                                                                                                                                        \
