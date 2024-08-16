@@ -181,14 +181,9 @@ struct EngineClassRegistration {
 // Note: the trail of `***` is to keep sane diffs in PRs, because clang-format otherwise moves every `\` which makes
 // every line of the macro different
 #define GDCLASS(m_class, m_inherits) /***********************************************************************************************************************************************/ \
-<<<<<<< HEAD
-private:																																											   \
-	typedef m_inherits Super;																																						   \
-	void operator=(const m_class &p_rval) {}                                                                                                                                           \
-=======
 private:                                                                                                                                                                               \
+	typedef m_inherits Super;																																						   \
 	void operator=(const m_class & /*p_rval*/) {}                                                                                                                                      \
->>>>>>> remote/4.3
 	friend class ::godot::ClassDB;                                                                                                                                                     \
 	friend class ::godot::Wrapped;                                                                                                                                                     \
                                                                                                                                                                                        \
