@@ -129,11 +129,14 @@ public:
 	int test_tarray_arg(const TypedArray<int64_t> &p_array);
 	TypedArray<Vector2> test_tarray() const;
 	Dictionary test_dictionary() const;
+	int test_tdictionary_arg(const TypedDictionary<String, int64_t> &p_dictionary);
+	TypedDictionary<Vector2, Vector2i> test_tdictionary() const;
 	Example *test_node_argument(Example *p_node) const;
 	String test_string_ops() const;
 	String test_str_utility() const;
 	bool test_string_is_forty_two(const String &p_str) const;
 	String test_string_resize(String p_original) const;
+	TypedArray<PackedInt32Array> test_typed_array_of_packed() const;
 	int test_vector_ops() const;
 	int test_vector_init_list() const;
 
@@ -194,6 +197,8 @@ public:
 	GDVIRTUAL1(_do_something_virtual_with_control, Control *);
 
 	String test_use_engine_singleton() const;
+
+	static String test_library_path();
 };
 
 VARIANT_ENUM_CAST(Example::Constants);

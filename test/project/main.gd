@@ -81,10 +81,13 @@ func _ready():
 
 	# Array and Dictionary
 	assert_equal(example.test_array(), [1, 2])
-	assert_equal(example.test_tarray(), [ Vector2(1, 2), Vector2(2, 3) ])
-	assert_equal(example.test_dictionary(), {"hello": "world", "foo": "bar"})
+	assert_equal(example.test_tarray(), [Vector2(1, 2), Vector2(2, 3)])
 	var array: Array[int] = [1, 2, 3]
 	assert_equal(example.test_tarray_arg(array), 6)
+	assert_equal(example.test_dictionary(), { "hello": "world", "foo": "bar" })
+	assert_equal(example.test_tdictionary(), { Vector2(1, 2): Vector2i(2, 3) })
+	var dictionary: Dictionary[String, int] = { "1": 1, "2": 2, "3": 3 }
+	assert_equal(example.test_tdictionary_arg(dictionary), 6)
 
 	example.callable_bind()
 	assert_equal(custom_signal_emitted, ["bound", 11])
@@ -269,6 +272,12 @@ func _ready():
 	example_child.notification(NOTIFICATION_ENTER_TREE, true)
 	assert_equal(example_child.get_value1(), 11)
 	assert_equal(example_child.get_value2(), 22)
+
+	# Test that the extension's library path is absolute and valid.
+	var library_path = Example.test_library_path()
+	assert_equal(library_path.begins_with("res://"), false)
+	assert_equal(library_path, ProjectSettings.globalize_path(library_path))
+	assert_equal(FileAccess.file_exists(library_path), true)
 
 	exit_with_status()
 

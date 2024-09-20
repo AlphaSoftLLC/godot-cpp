@@ -542,8 +542,14 @@ def generate_builtin_bindings(api, output_dir, build_config):
 
         builtin_header.append("")
 
+        includes = []
         for builtin in builtin_classes:
-            builtin_header.append(f"#include <godot_cpp/variant/{camel_to_snake(builtin)}.hpp>")
+            includes.append(f"godot_cpp/variant/{camel_to_snake(builtin)}.hpp")
+
+        includes.sort()
+
+        for include in includes:
+            builtin_header.append(f"#include <{include}>")
 
         builtin_header.append("")
 
@@ -599,11 +605,10 @@ def generate_builtin_class_vararg_method_implements_header(builtin_classes):
                 continue
 
             result += make_varargs_template(
-                method, "is_static" in method and method["is_static"], class_name, False, False, True
+                method, "is_static" in method and method["is_static"], class_name, False, True
             )
             result.append("")
 
-    result.append("")
     result.append(f"#endif // ! {header_guard}")
 
     return "\n".join(result)
@@ -628,38 +633,55 @@ def generate_builtin_class_header(builtin_api, size, used_classes, fully_used_cl
 
     # Special cases.
     if class_name == "String":
+        result.append("#include <godot_cpp/classes/global_constants.hpp>")
         result.append("#include <godot_cpp/variant/char_string.hpp>")
         result.append("#include <godot_cpp/variant/char_utils.hpp>")
-        result.append("#include <godot_cpp/classes/global_constants.hpp>")
+        result.append("")
 
     if class_name == "PackedStringArray":
         result.append("#include <godot_cpp/variant/string.hpp>")
+        result.append("")
     if class_name == "PackedColorArray":
         result.append("#include <godot_cpp/variant/color.hpp>")
+        result.append("")
     if class_name == "PackedVector2Array":
         result.append("#include <godot_cpp/variant/vector2.hpp>")
+        result.append("")
     if class_name == "PackedVector3Array":
         result.append("#include <godot_cpp/variant/vector3.hpp>")
+        result.append("")
     if class_name == "PackedVector4Array":
         result.append("#include <godot_cpp/variant/vector4.hpp>")
+        result.append("")
 
     if is_packed_array(class_name):
         result.append("#include <godot_cpp/core/error_macros.hpp>")
         result.append("#include <initializer_list>")
+        result.append("")
 
     if class_name == "Array":
         result.append("#include <godot_cpp/variant/array_helpers.hpp>")
+        result.append("")
 
     if class_name == "Callable":
         result.append("#include <godot_cpp/variant/callable_custom.hpp>")
-
-    for include in fully_used_classes:
-        if include == "TypedArray":
-            result.append("#include <godot_cpp/variant/typed_array.hpp>")
-        else:
-            result.append(f"#include <godot_cpp/{get_include_path(include)}>")
+        result.append("")
 
     if len(fully_used_classes) > 0:
+        includes = []
+        for include in fully_used_classes:
+            if include == "TypedArray":
+                includes.append("godot_cpp/variant/typed_array.hpp")
+            elif include == "TypedDictionary":
+                includes.append("godot_cpp/variant/typed_dictionary.hpp")
+            else:
+                includes.append(f"godot_cpp/{get_include_path(include)}")
+
+        includes.sort()
+
+        for include in includes:
+            result.append(f"#include <{include}>")
+
         result.append("")
 
     result.append("#include <gdextension_interface.h>")
@@ -737,7 +759,7 @@ def generate_builtin_class_header(builtin_api, size, used_classes, fully_used_cl
     result.append("public:")
 
     result.append(
-        f"\t_FORCE_INLINE_ GDExtensionTypePtr _native_ptr() const {{ return const_cast<uint8_t (*)[{snake_class_name}_SIZE]>(&opaque); }}"
+        f"\t_FORCE_INLINE_ GDExtensionTypePtr _native_ptr() const {{ return const_cast<uint8_t(*)[{snake_class_name}_SIZE]>(&opaque); }}"
     )
 
     copy_constructor_index = -1
@@ -852,14 +874,14 @@ def generate_builtin_class_header(builtin_api, size, used_classes, fully_used_cl
 
     if "operators" in builtin_api:
         for operator in builtin_api["operators"]:
-            if operator["name"] not in ["in", "xor"]:
+            if is_valid_cpp_operator(operator["name"]):
                 if "right_type" in operator:
                     result.append(
-                        f'\t{correct_type(operator["return_type"])} operator{operator["name"]}({type_for_parameter(operator["right_type"])}p_other) const;'
+                        f'\t{correct_type(operator["return_type"])} operator{get_operator_cpp_name(operator["name"])}({type_for_parameter(operator["right_type"])}p_other) const;'
                     )
                 else:
                     result.append(
-                        f'\t{correct_type(operator["return_type"])} operator{operator["name"].replace("unary", "")}() const;'
+                        f'\t{correct_type(operator["return_type"])} operator{get_operator_cpp_name(operator["name"])}() const;'
                     )
 
     # Copy assignment.
@@ -918,7 +940,7 @@ def generate_builtin_class_header(builtin_api, size, used_classes, fully_used_cl
         result.append(f"\tconst {return_type} *ptr() const;")
         result.append(f"\t{return_type} *ptrw();")
         iterators = """
-    struct Iterator {
+	struct Iterator {
 		_FORCE_INLINE_ $TYPE &operator*() const {
 			return *elem_ptr;
 		}
@@ -980,19 +1002,17 @@ def generate_builtin_class_header(builtin_api, size, used_classes, fully_used_cl
 	}
 	_FORCE_INLINE_ ConstIterator end() const {
 		return ConstIterator(ptr() + size());
-	}
-"""
+	}"""
         result.append(iterators.replace("$TYPE", return_type))
         init_list = """
-    _FORCE_INLINE_ $CLASS(std::initializer_list<$TYPE> p_init) {
+	_FORCE_INLINE_ $CLASS(std::initializer_list<$TYPE> p_init) {
 		ERR_FAIL_COND(resize(p_init.size()) != 0);
 
 		size_t i = 0;
 		for (const $TYPE &element : p_init) {
 			set(i++, element);
 		}
-	}
-"""
+	}"""
         result.append(init_list.replace("$TYPE", return_type).replace("$CLASS", class_name))
 
     if class_name == "Array":
@@ -1004,6 +1024,9 @@ def generate_builtin_class_header(builtin_api, size, used_classes, fully_used_cl
     if class_name == "Dictionary":
         result.append("\tconst Variant &operator[](const Variant &p_key) const;")
         result.append("\tVariant &operator[](const Variant &p_key);")
+        result.append(
+            "\tvoid set_typed(uint32_t p_key_type, const StringName &p_key_class_name, const Variant &p_key_script, uint32_t p_value_type, const StringName &p_value_class_name, const Variant &p_value_script);"
+        )
 
     result.append("};")
 
@@ -1031,7 +1054,9 @@ def generate_builtin_class_header(builtin_api, size, used_classes, fully_used_cl
     result.append("")
     result.append("} // namespace godot")
 
+    result.append("")
     result.append(f"#endif // ! {header_guard}")
+    result.append("")
 
     return "\n".join(result)
 
@@ -1045,7 +1070,6 @@ def generate_builtin_class_source(builtin_api, size, used_classes, fully_used_cl
 
     add_header(f"{snake_class_name}.cpp", result)
 
-    result.append("")
     result.append(f"#include <godot_cpp/variant/{snake_class_name}.hpp>")
     result.append("")
     result.append("#include <godot_cpp/core/binder_common.hpp>")
@@ -1054,10 +1078,16 @@ def generate_builtin_class_source(builtin_api, size, used_classes, fully_used_cl
     result.append("")
 
     # Only used since the "fully used" is included in header already.
-    for include in used_classes:
-        result.append(f"#include <godot_cpp/{get_include_path(include)}>")
-
     if len(used_classes) > 0:
+        includes = []
+        for included in used_classes:
+            includes.append(f"godot_cpp/{get_include_path(included)}")
+
+        includes.sort()
+
+        for included in includes:
+            result.append(f"#include <{included}>")
+
         result.append("")
 
     result.append("#include <godot_cpp/core/builtin_ptrcall.hpp>")
@@ -1291,10 +1321,10 @@ def generate_builtin_class_source(builtin_api, size, used_classes, fully_used_cl
 
     if "operators" in builtin_api:
         for operator in builtin_api["operators"]:
-            if operator["name"] not in ["in", "xor"]:
+            if is_valid_cpp_operator(operator["name"]):
                 if "right_type" in operator:
                     result.append(
-                        f'{correct_type(operator["return_type"])} {class_name}::operator{operator["name"]}({type_for_parameter(operator["right_type"])}p_other) const {{'
+                        f'{correct_type(operator["return_type"])} {class_name}::operator{get_operator_cpp_name(operator["name"])}({type_for_parameter(operator["right_type"])}p_other) const {{'
                     )
                     (encode, arg_name) = get_encoded_arg("other", operator["right_type"], None)
                     result += encode
@@ -1304,10 +1334,10 @@ def generate_builtin_class_source(builtin_api, size, used_classes, fully_used_cl
                     result.append("}")
                 else:
                     result.append(
-                        f'{correct_type(operator["return_type"])} {class_name}::operator{operator["name"].replace("unary", "")}() const {{'
+                        f'{correct_type(operator["return_type"])} {class_name}::operator{get_operator_cpp_name(operator["name"])}() const {{'
                     )
                     result.append(
-                        f'\treturn internal::_call_builtin_operator_ptr<{get_gdextension_type(correct_type(operator["return_type"]))}>(_method_bindings.operator_{get_operator_id_name(operator["name"])}, (GDExtensionConstTypePtr)&opaque, (GDExtensionConstTypePtr)nullptr);'
+                        f'\treturn internal::_call_builtin_operator_ptr<{get_gdextension_type(correct_type(operator["return_type"]))}>(_method_bindings.operator_{get_operator_id_name(operator["name"])}, (GDExtensionConstTypePtr)&opaque, (GDExtensionConstTypePtr) nullptr);'
                     )
                     result.append("}")
                 result.append("")
@@ -1343,6 +1373,7 @@ def generate_builtin_class_source(builtin_api, size, used_classes, fully_used_cl
 
     result.append("")
     result.append("} //namespace godot")
+    result.append("")
 
     return "\n".join(result)
 
@@ -1412,6 +1443,32 @@ def generate_engine_classes_bindings(api, output_dir, use_template_get_node):
                                         fully_used_classes.add(array_type_name)
                                     else:
                                         used_classes.add(array_type_name)
+                            elif type_name.startswith("typeddictionary::"):
+                                fully_used_classes.add("TypedDictionary")
+                                dict_type_name = type_name.replace("typeddictionary::", "")
+                                if dict_type_name.startswith("const "):
+                                    dict_type_name = dict_type_name[6:]
+                                dict_type_names = dict_type_name.split(";")
+                                dict_type_name = dict_type_names[0]
+                                if dict_type_name.endswith("*"):
+                                    dict_type_name = dict_type_name[:-1]
+                                if is_included(dict_type_name, class_name):
+                                    if is_enum(dict_type_name):
+                                        fully_used_classes.add(get_enum_class(dict_type_name))
+                                    elif "default_value" in argument:
+                                        fully_used_classes.add(dict_type_name)
+                                    else:
+                                        used_classes.add(dict_type_name)
+                                dict_type_name = dict_type_names[2]
+                                if dict_type_name.endswith("*"):
+                                    dict_type_name = dict_type_name[:-1]
+                                if is_included(dict_type_name, class_name):
+                                    if is_enum(dict_type_name):
+                                        fully_used_classes.add(get_enum_class(dict_type_name))
+                                    elif "default_value" in argument:
+                                        fully_used_classes.add(dict_type_name)
+                                    else:
+                                        used_classes.add(dict_type_name)
                             elif is_enum(type_name):
                                 fully_used_classes.add(get_enum_class(type_name))
                             elif "default_value" in argument:
@@ -1441,6 +1498,32 @@ def generate_engine_classes_bindings(api, output_dir, use_template_get_node):
                                     fully_used_classes.add(array_type_name)
                                 else:
                                     used_classes.add(array_type_name)
+                        elif type_name.startswith("typeddictionary::"):
+                            fully_used_classes.add("TypedDictionary")
+                            dict_type_name = type_name.replace("typeddictionary::", "")
+                            if dict_type_name.startswith("const "):
+                                dict_type_name = dict_type_name[6:]
+                            dict_type_names = dict_type_name.split(";")
+                            dict_type_name = dict_type_names[0]
+                            if dict_type_name.endswith("*"):
+                                dict_type_name = dict_type_name[:-1]
+                            if is_included(dict_type_name, class_name):
+                                if is_enum(dict_type_name):
+                                    fully_used_classes.add(get_enum_class(dict_type_name))
+                                elif is_variant(dict_type_name):
+                                    fully_used_classes.add(dict_type_name)
+                                else:
+                                    used_classes.add(dict_type_name)
+                            dict_type_name = dict_type_names[2]
+                            if dict_type_name.endswith("*"):
+                                dict_type_name = dict_type_name[:-1]
+                            if is_included(dict_type_name, class_name):
+                                if is_enum(dict_type_name):
+                                    fully_used_classes.add(get_enum_class(dict_type_name))
+                                elif is_variant(dict_type_name):
+                                    fully_used_classes.add(dict_type_name)
+                                else:
+                                    used_classes.add(dict_type_name)
                         elif is_enum(type_name):
                             fully_used_classes.add(get_enum_class(type_name))
                         elif is_variant(type_name):
@@ -1518,11 +1601,18 @@ def generate_engine_classes_bindings(api, output_dir, use_template_get_node):
 
         result.append("")
 
-        for included in used_classes:
-            result.append(f"#include <godot_cpp/{get_include_path(included)}>")
+        if len(used_classes) > 0:
+            includes = []
+            for included in used_classes:
+                includes.append(f"godot_cpp/{get_include_path(included)}")
 
-        if len(used_classes) == 0:
+            includes.sort()
+
+            for include in includes:
+                result.append(f"#include <{include}>")
+        else:
             result.append("#include <godot_cpp/core/method_ptrcall.hpp>")
+
         result.append("")
 
         result.append("namespace godot {")
@@ -1562,16 +1652,25 @@ def generate_engine_class_header(class_api, used_classes, fully_used_classes, us
 
     result.append("")
 
-    for included in fully_used_classes:
-        if included == "TypedArray":
-            result.append("#include <godot_cpp/variant/typed_array.hpp>")
-        else:
-            result.append(f"#include <godot_cpp/{get_include_path(included)}>")
+    if len(fully_used_classes) > 0:
+        includes = []
+        for included in fully_used_classes:
+            if included == "TypedArray":
+                includes.append("godot_cpp/variant/typed_array.hpp")
+            elif included == "TypedDictionary":
+                includes.append("godot_cpp/variant/typed_dictionary.hpp")
+            else:
+                includes.append(f"godot_cpp/{get_include_path(included)}")
+
+        includes.sort()
+
+        for include in includes:
+            result.append(f"#include <{include}>")
+
+        result.append("")
 
     if class_name == "EditorPlugin":
         result.append("#include <godot_cpp/classes/editor_plugin_registration.hpp>")
-
-    if len(fully_used_classes) > 0:
         result.append("")
 
     if class_name != "Object" and class_name != "ClassDBSingleton":
@@ -1610,7 +1709,6 @@ def generate_engine_class_header(class_api, used_classes, fully_used_classes, us
         result.append("")
 
     result.append("public:")
-    result.append("")
 
     if "enums" in class_api:
         for enum_api in class_api["enums"]:
@@ -1664,6 +1762,10 @@ def generate_engine_class_header(class_api, used_classes, fully_used_classes, us
 
             vararg = "is_vararg" in method and method["is_vararg"]
 
+            if vararg:
+                result.append("")
+                result.append("private:")
+
             method_signature = "\t"
             method_signature += make_signature(
                 class_name, method, for_header=True, use_template_get_node=use_template_get_node
@@ -1671,6 +1773,8 @@ def generate_engine_class_header(class_api, used_classes, fully_used_classes, us
             result.append(method_signature + ";")
 
             if vararg:
+                result.append("")
+                result.append("public:")
                 # Add templated version.
                 result += make_varargs_template(method)
 
@@ -1684,6 +1788,8 @@ def generate_engine_class_header(class_api, used_classes, fully_used_classes, us
                 class_name, method, for_header=True, use_template_get_node=use_template_get_node
             )
             result.append(method_signature + ";")
+
+        result.append("")
 
     result.append("protected:")
     # T is the custom class we want to register (from which the call initiates, going up the inheritance chain),
@@ -1701,7 +1807,7 @@ def generate_engine_class_header(class_api, used_classes, fully_used_classes, us
                     # If the method is different from the base class, it means T overrides it, so it needs to be bound.
                     # Note that with an `if constexpr`, the code inside the `if` will not even be compiled if the
                     # condition returns false (in such cases it can't compile due to ambiguity).
-                    f"\t\tif constexpr (!std::is_same_v<decltype(&B::{method_name}),decltype(&T::{method_name})>) {{"
+                    f"\t\tif constexpr (!std::is_same_v<decltype(&B::{method_name}), decltype(&T::{method_name})>) {{"
                 )
                 result.append(f"\t\t\tBIND_VIRTUAL_METHOD(T, {method_name});")
                 result.append("\t\t}")
@@ -1729,7 +1835,7 @@ def generate_engine_class_header(class_api, used_classes, fully_used_classes, us
 
     if class_name == "WorkerThreadPool":
         result.append("\tenum {")
-        result.append("\tINVALID_TASK_ID = -1")
+        result.append("\t\tINVALID_TASK_ID = -1")
         result.append("\t};")
         result.append("\ttypedef int64_t TaskID;")
         result.append("\ttypedef int64_t GroupID;")
@@ -1741,8 +1847,6 @@ def generate_engine_class_header(class_api, used_classes, fully_used_classes, us
         )
 
     if class_name == "Object":
-        result.append("")
-
         result.append("\ttemplate <typename T>")
         result.append("\tstatic T *cast_to(Object *p_object);")
 
@@ -1757,7 +1861,6 @@ def generate_engine_class_header(class_api, used_classes, fully_used_classes, us
             "\tT *get_node(const NodePath &p_path) const { return Object::cast_to<T>(get_node_internal(p_path)); }"
         )
 
-    result.append("")
     result.append("};")
     result.append("")
 
@@ -1841,7 +1944,7 @@ def generate_engine_class_header(class_api, used_classes, fully_used_classes, us
 
             result.append(method_body)
             result.append("\t} \\")
-        result.append("\t;")
+        result.append("\t")
         result.append("")
 
         result.append("#define CLASSDB_SINGLETON_VARIANT_CAST \\")
@@ -1853,10 +1956,11 @@ def generate_engine_class_header(class_api, used_classes, fully_used_classes, us
                 else:
                     result.append(f'\tVARIANT_ENUM_CAST({class_api["alias_for"]}::{enum_api["name"]}); \\')
 
-        result.append("\t;")
+        result.append("\t")
         result.append("")
 
     result.append(f"#endif // ! {header_guard}")
+    result.append("")
 
     return "\n".join(result)
 
@@ -1878,10 +1982,16 @@ def generate_engine_class_source(class_api, used_classes, fully_used_classes, us
     result.append("#include <godot_cpp/core/error_macros.hpp>")
     result.append("")
 
-    for included in used_classes:
-        result.append(f"#include <godot_cpp/{get_include_path(included)}>")
-
     if len(used_classes) > 0:
+        includes = []
+        for included in used_classes:
+            includes.append(f"godot_cpp/{get_include_path(included)}")
+
+        includes.sort()
+
+        for included in includes:
+            result.append(f"#include <{included}>")
+
         result.append("")
 
     result.append("namespace godot {")
@@ -2031,8 +2141,8 @@ def generate_engine_class_source(class_api, used_classes, fully_used_classes, us
                 result.append(method_signature)
             result.append("")
 
+    result.append("} // namespace godot")
     result.append("")
-    result.append("} // namespace godot ")
 
     return "\n".join(result)
 
@@ -2060,23 +2170,24 @@ def generate_global_constants(api, output_dir):
     header.append("namespace godot {")
     header.append("")
 
-    for constant in api["global_constants"]:
-        header.append(f'\tconst int64_t {escape_identifier(constant["name"])} = {constant["value"]};')
+    if len(api["global_constants"]) > 0:
+        for constant in api["global_constants"]:
+            header.append(f'const int64_t {escape_identifier(constant["name"])} = {constant["value"]};')
 
-    header.append("")
+        header.append("")
 
     for enum_def in api["global_enums"]:
         if enum_def["name"].startswith("Variant."):
             continue
 
         if enum_def["is_bitfield"]:
-            header.append(f'\tenum {enum_def["name"]} : uint64_t {{')
+            header.append(f'enum {enum_def["name"]} : uint64_t {{')
         else:
-            header.append(f'\tenum {enum_def["name"]} {{')
+            header.append(f'enum {enum_def["name"]} {{')
 
         for value in enum_def["values"]:
-            header.append(f'\t\t{value["name"]} = {value["value"]},')
-        header.append("\t};")
+            header.append(f'\t{value["name"]} = {value["value"]},')
+        header.append("};")
         header.append("")
 
     header.append("} // namespace godot")
@@ -2195,11 +2306,17 @@ def generate_utility_functions(api, output_dir):
 
         vararg = "is_vararg" in function and function["is_vararg"]
 
+        if vararg:
+            header.append("")
+            header.append("private:")
+
         function_signature = "\t"
         function_signature += make_signature("UtilityFunctions", function, for_header=True, static=True)
         header.append(function_signature + ";")
 
         if vararg:
+            header.append("")
+            header.append("public:")
             # Add templated version.
             header += make_varargs_template(function, static=True)
 
@@ -2220,8 +2337,8 @@ def generate_utility_functions(api, output_dir):
 
     source.append("#include <godot_cpp/variant/utility_functions.hpp>")
     source.append("")
-    source.append("#include <godot_cpp/core/error_macros.hpp>")
     source.append("#include <godot_cpp/core/engine_ptrcall.hpp>")
+    source.append("#include <godot_cpp/core/error_macros.hpp>")
     source.append("")
     source.append("namespace godot {")
     source.append("")
@@ -2323,7 +2440,7 @@ def make_function_parameters(parameters, include_default=False, for_builtin=Fals
         signature.append(parameter)
 
     if is_vararg:
-        signature.append("const Args&... p_args")
+        signature.append("const Args &...p_args")
 
     return ", ".join(signature)
 
@@ -2381,9 +2498,6 @@ def make_signature(
         if "is_virtual" in function_data and function_data["is_virtual"]:
             function_signature += "virtual "
 
-        if is_vararg:
-            function_signature += "private: "
-
         if static:
             function_signature += "static "
 
@@ -2436,7 +2550,6 @@ def make_varargs_template(
     function_data,
     static=False,
     class_befor_signature="",
-    with_public_declare=True,
     with_indent=True,
     for_builtin_classes=False,
 ):
@@ -2444,10 +2557,7 @@ def make_varargs_template(
 
     function_signature = ""
 
-    if with_public_declare:
-        function_signature = "public: "
-
-    function_signature += "template <typename... Args> "
+    result.append("template <typename... Args>")
 
     if static:
         function_signature += "static "
@@ -2490,7 +2600,7 @@ def make_varargs_template(
     function_signature += " {"
     result.append(function_signature)
 
-    args_array = f"\tstd::array<Variant, {len(method_arguments)} + sizeof...(Args)> variant_args {{ "
+    args_array = f"\tstd::array<Variant, {len(method_arguments)} + sizeof...(Args)> variant_args{{ "
     for argument in method_arguments:
         if argument["type"] == "Variant":
             args_array += escape_argument(argument["name"])
@@ -2658,6 +2768,7 @@ def is_variant(type_name):
         or type_name in builtin_classes
         or type_name == "Nil"
         or type_name.startswith("typedarray::")
+        or type_name.startswith("typeddictionary::")
     )
 
 
@@ -2697,6 +2808,8 @@ def is_included(type_name, current_type):
     """
     if type_name.startswith("typedarray::"):
         return True
+    if type_name.startswith("typeddictionary::"):
+        return True
     to_include = get_enum_class(type_name) if is_enum(type_name) else type_name
     if to_include == current_type or is_pod_type(to_include):
         return False
@@ -2735,19 +2848,27 @@ def correct_typed_array(type_name):
     return type_name
 
 
+def correct_typed_dictionary(type_name):
+    if type_name.startswith("typeddictionary::"):
+        return type_name.replace("typeddictionary::", "TypedDictionary<").replace(";", ", ") + ">"
+    return type_name
+
+
 def correct_type(type_name, meta=None, use_alias=True):
     type_conversion = {"float": "double", "int": "int64_t", "Nil": "Variant"}
     if meta is not None:
         if "int" in meta:
             return f"{meta}_t"
-        elif meta in type_conversion:
-            return type_conversion[type_name]
+        elif "char" in meta:
+            return f"{meta}_t"
         else:
             return meta
     if type_name in type_conversion:
         return type_conversion[type_name]
     if type_name.startswith("typedarray::"):
         return type_name.replace("typedarray::", "TypedArray<") + ">"
+    if type_name.startswith("typeddictionary::"):
+        return type_name.replace("typeddictionary::", "TypedDictionary<").replace(";", ", ") + ">"
     if is_enum(type_name):
         if is_bitfield(type_name):
             base_class = get_enum_class(type_name)
@@ -2853,6 +2974,38 @@ def get_operator_id_name(op):
     return op_id_map[op]
 
 
+def get_operator_cpp_name(op):
+    op_cpp_map = {
+        "==": "==",
+        "!=": "!=",
+        "<": "<",
+        "<=": "<=",
+        ">": ">",
+        ">=": ">=",
+        "+": "+",
+        "-": "-",
+        "*": "*",
+        "/": "/",
+        "unary-": "-",
+        "unary+": "+",
+        "%": "%",
+        "<<": "<<",
+        ">>": ">>",
+        "&": "&",
+        "|": "|",
+        "^": "^",
+        "~": "~",
+        "and": "&&",
+        "or": "||",
+        "not": "!",
+    }
+    return op_cpp_map[op]
+
+
+def is_valid_cpp_operator(op):
+    return op not in ["**", "xor", "in"]
+
+
 def get_default_value_for_type(type_name):
     if type_name == "int":
         return "0"
@@ -2861,6 +3014,8 @@ def get_default_value_for_type(type_name):
     if type_name == "bool":
         return "false"
     if type_name.startswith("typedarray::"):
+        return f"{correct_type(type_name)}()"
+    if type_name.startswith("typeddictionary::"):
         return f"{correct_type(type_name)}()"
     if is_enum(type_name):
         return f"{correct_type(type_name)}(0)"

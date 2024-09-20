@@ -199,11 +199,14 @@ void Example::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("test_tarray_arg", "array"), &Example::test_tarray_arg);
 	ClassDB::bind_method(D_METHOD("test_tarray"), &Example::test_tarray);
 	ClassDB::bind_method(D_METHOD("test_dictionary"), &Example::test_dictionary);
+	ClassDB::bind_method(D_METHOD("test_tdictionary_arg", "dictionary"), &Example::test_tdictionary_arg);
+	ClassDB::bind_method(D_METHOD("test_tdictionary"), &Example::test_tdictionary);
 	ClassDB::bind_method(D_METHOD("test_node_argument"), &Example::test_node_argument);
 	ClassDB::bind_method(D_METHOD("test_string_ops"), &Example::test_string_ops);
 	ClassDB::bind_method(D_METHOD("test_str_utility"), &Example::test_str_utility);
 	ClassDB::bind_method(D_METHOD("test_string_is_forty_two"), &Example::test_string_is_forty_two);
 	ClassDB::bind_method(D_METHOD("test_string_resize"), &Example::test_string_resize);
+	ClassDB::bind_method(D_METHOD("test_typed_array_of_packed"), &Example::test_typed_array_of_packed);
 	ClassDB::bind_method(D_METHOD("test_vector_ops"), &Example::test_vector_ops);
 	ClassDB::bind_method(D_METHOD("test_vector_init_list"), &Example::test_vector_init_list);
 
@@ -247,6 +250,8 @@ void Example::_bind_methods() {
 
 	ClassDB::bind_static_method("Example", D_METHOD("test_static", "a", "b"), &Example::test_static);
 	ClassDB::bind_static_method("Example", D_METHOD("test_static2"), &Example::test_static2);
+
+	ClassDB::bind_static_method("Example", D_METHOD("test_library_path"), &Example::test_library_path);
 
 	{
 		MethodInfo mi;
@@ -424,6 +429,19 @@ String Example::test_string_resize(String p_string) const {
 	return p_string;
 }
 
+TypedArray<PackedInt32Array> Example::test_typed_array_of_packed() const {
+	TypedArray<PackedInt32Array> arr;
+	PackedInt32Array packed_arr1;
+	packed_arr1.push_back(1);
+	packed_arr1.push_back(2);
+	arr.push_back(packed_arr1);
+	PackedInt32Array packed_arr2;
+	packed_arr2.push_back(3);
+	packed_arr2.push_back(4);
+	arr.push_back(packed_arr2);
+	return arr;
+}
+
 int Example::test_vector_ops() const {
 	PackedInt32Array arr;
 	arr.push_back(10);
@@ -531,6 +549,23 @@ Dictionary Example::test_dictionary() const {
 
 	dict["hello"] = "world";
 	dict["foo"] = "bar";
+
+	return dict;
+}
+
+int Example::test_tdictionary_arg(const TypedDictionary<String, int64_t> &p_dictionary) {
+	int sum = 0;
+	TypedArray<int64_t> values = p_dictionary.values();
+	for (int i = 0; i < p_dictionary.size(); i++) {
+		sum += (int)values[i];
+	}
+	return sum;
+}
+
+TypedDictionary<Vector2, Vector2i> Example::test_tdictionary() const {
+	TypedDictionary<Vector2, Vector2i> dict;
+
+	dict[Vector2(1, 2)] = Vector2i(2, 3);
 
 	return dict;
 }
@@ -693,6 +728,12 @@ String Example::test_virtual_implemented_in_script(const String &p_name, int p_v
 
 String Example::test_use_engine_singleton() const {
 	return OS::get_singleton()->get_name();
+}
+
+String Example::test_library_path() {
+	String library_path;
+	internal::gdextension_interface_get_library_path(internal::library, library_path._native_ptr());
+	return library_path;
 }
 
 void ExampleRuntime::_bind_methods() {
