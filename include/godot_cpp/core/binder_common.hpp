@@ -258,9 +258,19 @@ void call_with_variant_args_ret_helper(T *p_instance, R (T::*p_method)(P...), co
 	r_error.error = GDEXTENSION_CALL_OK;
 
 #ifdef DEBUG_METHODS_ENABLED
-	r_ret = (p_instance->*p_method)(VariantCasterAndValidate<P>::cast(p_args, Is, r_error)...);
+	if constexpr (std::is_enum<R>()) {
+		r_ret = static_cast<int64_t>((p_instance->*p_method)(VariantCasterAndValidate<P>::cast(p_args, Is, r_error)...));
+	}
+	else {
+		r_ret = (p_instance->*p_method)(VariantCasterAndValidate<P>::cast(p_args, Is, r_error)...);
+	}
 #else
-	r_ret = (p_instance->*p_method)(VariantCaster<P>::cast(*p_args[Is])...);
+	if constexpr(std::is_enum<R>() && std::is_class<R>()) {
+		r_ret = static_cast<int64_t>((p_instance->*p_method)(VariantCaster<P>::cast(*p_args[Is])...));
+	}
+	else {
+		r_ret = (p_instance->*p_method)(VariantCaster<P>::cast(*p_args[Is])...);
+	}
 #endif
 }
 
@@ -269,9 +279,19 @@ void call_with_variant_args_retc_helper(T *p_instance, R (T::*p_method)(P...) co
 	r_error.error = GDEXTENSION_CALL_OK;
 
 #ifdef DEBUG_METHODS_ENABLED
-	r_ret = (p_instance->*p_method)(VariantCasterAndValidate<P>::cast(p_args, Is, r_error)...);
+	if constexpr (std::is_enum<R>()) {
+		r_ret = static_cast<int64_t>((p_instance->*p_method)(VariantCasterAndValidate<P>::cast(p_args, Is, r_error)...));
+	}
+	else {
+		r_ret = (p_instance->*p_method)(VariantCasterAndValidate<P>::cast(p_args, Is, r_error)...);
+	}
 #else
-	r_ret = (p_instance->*p_method)(VariantCaster<P>::cast(*p_args[Is])...);
+	if constexpr (std::is_enum<R>()) {
+		r_ret = static_cast<int64_t>((p_instance->*p_method)(VariantCaster<P>::cast(*p_args[Is])...));
+	}
+	else {
+		r_ret = (p_instance->*p_method)(VariantCaster<P>::cast(*p_args[Is])...);
+	}
 #endif
 	(void)p_args;
 }
@@ -633,9 +653,20 @@ void call_with_variant_args_static_ret(R (*p_method)(P...), const Variant **p_ar
 	r_error.error = GDEXTENSION_CALL_OK;
 
 #ifdef DEBUG_METHODS_ENABLED
-	r_ret = (p_method)(VariantCasterAndValidate<P>::cast(p_args, Is, r_error)...);
+	if constexpr (std::is_enum<R>()) {
+		r_ret = static_cast<int64_t>((p_method)(VariantCasterAndValidate<P>::cast(p_args, Is, r_error)...));
+	}
+	else {
+		r_ret = (p_method)(VariantCasterAndValidate<P>::cast(p_args, Is, r_error)...);
+	}
+
 #else
-	r_ret = (p_method)(VariantCaster<P>::cast(*p_args[Is])...);
+	if constexpr (std::is_enum<R>()) {
+		r_ret = static_cast<int_64_t>((p_method)(VariantCaster<P>::cast(*p_args[Is])...));
+	}
+	else {
+		r_ret = (p_method)(VariantCaster<P>::cast(*p_args[Is])...);
+	}
 #endif
 }
 
