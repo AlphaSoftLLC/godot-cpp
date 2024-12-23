@@ -217,6 +217,7 @@ void Example::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("test_variant_vector2i_conversion", "variant"), &Example::test_variant_vector2i_conversion);
 	ClassDB::bind_method(D_METHOD("test_variant_int_conversion", "variant"), &Example::test_variant_int_conversion);
 	ClassDB::bind_method(D_METHOD("test_variant_float_conversion", "variant"), &Example::test_variant_float_conversion);
+	ClassDB::bind_method(D_METHOD("test_object_is_valid", "variant"), &Example::test_object_is_valid);
 
 	ClassDB::bind_method(D_METHOD("test_add_child", "node"), &Example::test_add_child);
 	ClassDB::bind_method(D_METHOD("test_set_tileset", "tilemap", "tileset"), &Example::test_set_tileset);
@@ -241,6 +242,8 @@ void Example::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("def_args", "a", "b"), &Example::def_args, DEFVAL(100), DEFVAL(200));
 	ClassDB::bind_method(D_METHOD("callable_bind"), &Example::callable_bind);
 	ClassDB::bind_method(D_METHOD("test_post_initialize"), &Example::test_post_initialize);
+
+	ClassDB::bind_method(D_METHOD("test_get_internal", "a"), &Example::test_get_internal);
 
 	GDVIRTUAL_BIND(_do_something_virtual, "name", "value");
 	ClassDB::bind_method(D_METHOD("test_virtual_implemented_in_script"), &Example::test_virtual_implemented_in_script);
@@ -598,6 +601,10 @@ float Example::test_variant_float_conversion(const Variant &p_variant) const {
 	return p_variant;
 }
 
+bool Example::test_object_is_valid(const Variant &p_variant) const {
+	return static_cast<bool>(p_variant.get_validated_object());
+}
+
 void Example::test_add_child(Node *p_node) {
 	add_child(p_node);
 }
@@ -736,6 +743,14 @@ String Example::test_library_path() {
 	return library_path;
 }
 
+int64_t Example::test_get_internal(const Variant &p_input) const {
+	if (p_input.get_type() != Variant::INT) {
+		return -1;
+	}
+
+	return *VariantInternal::get_int(&p_input);
+}
+
 void ExampleRuntime::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_prop_value", "value"), &ExampleRuntime::set_prop_value);
 	ClassDB::bind_method(D_METHOD("get_prop_value"), &ExampleRuntime::get_prop_value);
@@ -754,4 +769,12 @@ ExampleRuntime::ExampleRuntime() {
 }
 
 ExampleRuntime::~ExampleRuntime() {
+}
+
+void ExamplePrzykład::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("get_the_word"), &ExamplePrzykład::get_the_word);
+}
+
+String ExamplePrzykład::get_the_word() const {
+	return U"słowo to przykład";
 }

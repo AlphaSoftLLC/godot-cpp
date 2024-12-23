@@ -40,6 +40,14 @@
 
 #include <godot_cpp/godot.hpp>
 
+#if defined(MACOS_ENABLED) && defined(HOT_RELOAD_ENABLED)
+#include <mutex>
+#define _GODOT_CPP_AVOID_THREAD_LOCAL
+#define _GODOT_CPP_THREAD_LOCAL
+#else
+#define _GODOT_CPP_THREAD_LOCAL thread_local
+#endif
+
 namespace godot {
 
 class ClassDB;
@@ -60,8 +68,16 @@ class Wrapped {
 	template <typename T, std::enable_if_t<std::is_base_of<::godot::Wrapped, T>::value, bool>>
 	friend _ALWAYS_INLINE_ void _pre_initialize();
 
-	thread_local static const StringName *_constructing_extension_class_name;
-	thread_local static const GDExtensionInstanceBindingCallbacks *_constructing_class_binding_callbacks;
+#ifdef _GODOT_CPP_AVOID_THREAD_LOCAL
+	static std::recursive_mutex _constructing_mutex;
+#endif
+
+	_GODOT_CPP_THREAD_LOCAL static const StringName *_constructing_extension_class_name;
+	_GODOT_CPP_THREAD_LOCAL static const GDExtensionInstanceBindingCallbacks *_constructing_class_binding_callbacks;
+
+#ifdef HOT_RELOAD_ENABLED
+	_GODOT_CPP_THREAD_LOCAL static GDExtensionObjectPtr _constructing_recreate_owner;
+#endif
 
 	template <typename T>
 	_ALWAYS_INLINE_ static void _set_construct_info() {
@@ -72,15 +88,6 @@ class Wrapped {
 protected:
 	virtual bool _is_extension_class() const { return false; }
 	static const StringName *_get_extension_class_name(); // This is needed to retrieve the class name before the godot object has its _extension and _extension_instance members assigned.
-
-#ifdef HOT_RELOAD_ENABLED
-	struct RecreateInstance {
-		GDExtensionClassInstancePtr wrapper;
-		GDExtensionObjectPtr owner;
-		RecreateInstance *next;
-	};
-	inline static RecreateInstance *recreate_instance = nullptr;
-#endif
 
 	virtual void _init() {}
 	virtual void _notification(int p_what) {}
@@ -107,7 +114,6 @@ protected:
 	::godot::List<::godot::PropertyInfo> plist_owned;
 
 	void _postinitialize();
-	virtual void _notificationv(int32_t p_what, bool p_reversed = false) {}
 
 	Wrapped(const StringName p_godot_class);
 	Wrapped(GodotObject *p_godot_object);
@@ -129,6 +135,9 @@ public:
 
 template <typename T, std::enable_if_t<std::is_base_of<::godot::Wrapped, T>::value, bool>>
 _ALWAYS_INLINE_ void _pre_initialize() {
+#ifdef _GODOT_CPP_AVOID_THREAD_LOCAL
+	Wrapped::_constructing_mutex.lock();
+#endif
 	Wrapped::_set_construct_info<T>();
 }
 
@@ -254,7 +263,7 @@ public:                                                                         
 	}                                                                                                                                                                                  \
                                                                                                                                                                                        \
 	static const ::godot::StringName &get_class_static() {                                                                                                                             \
-		static const ::godot::StringName string_name = ::godot::StringName(#m_class);                                                                                                  \
+		static const ::godot::StringName string_name = ::godot::StringName(U## #m_class);                                                                                              \
 		return string_name;                                                                                                                                                            \
 	}                                                                                                                                                                                  \
                                                                                                                                                                                        \
@@ -401,11 +410,6 @@ public:                                                                         
 		_gde_binding_free_callback,                                                                                                                                                    \
 		_gde_binding_reference_callback,                                                                                                                                               \
 	};                                                                                                                                                                                 \
-                                                                                                                                                                                       \
-protected:                                                                                                                                                                             \
-	virtual void _notificationv(int32_t p_what, bool p_reversed = false) override {                                                                                                    \
-		m_class::notification_bind(this, p_what, p_reversed);                                                                                                                          \
-	}                                                                                                                                                                                  \
                                                                                                                                                                                        \
 private:
 
