@@ -30,6 +30,7 @@ include( ${CMAKE_CURRENT_SOURCE_DIR}/cmake/linux.cmake)
 include( ${CMAKE_CURRENT_SOURCE_DIR}/cmake/macos.cmake)
 include( ${CMAKE_CURRENT_SOURCE_DIR}/cmake/web.cmake)
 include( ${CMAKE_CURRENT_SOURCE_DIR}/cmake/windows.cmake)
+include( ${CMAKE_CURRENT_SOURCE_DIR}/cmake/python_callouts.cmake)
 
 # Detect number of processors
 include(ProcessorCount)
@@ -109,7 +110,9 @@ function( godotcpp_options )
     #TODO threads
     #TODO compiledb
     #TODO compiledb_file
-    #TODO build_profile
+
+    set( GODOT_BUILD_PROFILE "" CACHE PATH
+            "Path to a file containing a feature build profile" )
 
     set(GODOT_USE_HOT_RELOAD "" CACHE BOOL
             "Enable the extra accounting required to support hot reload. (ON|OFF)")
@@ -141,6 +144,9 @@ function( godotcpp_options )
     # FIXME These options are not present in SCons, and perhaps should be added there.
     option( GODOT_SYSTEM_HEADERS "Expose headers as SYSTEM." OFF )
     option( GODOT_WARNING_AS_ERROR "Treat warnings as errors" OFF )
+
+    # Enable Testing
+    option( GODOT_ENABLE_TESTING "Enable the godot-cpp.test.<target> integration testing targets" OFF )
 
     #[[ Target Platform Options ]]
     android_options()
@@ -190,45 +196,52 @@ function( godotcpp_generate )
         set(GODOT_SYSTEM_HEADERS_ATTRIBUTE SYSTEM)
     endif ()
 
-    #[[ Generate Bindings ]]
-    if(NOT DEFINED BITS)
-        set(BITS 32)
-        if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-            set(BITS 64)
-        endif(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    #[[ Configure Binding Variables ]]
+    # Generate Binding Parameters (True|False)
+    set( USE_TEMPLATE_GET_NODE "False" )
+    if( GODOT_GENERATE_TEMPLATE_GET_NODE )
+        set( USE_TEMPLATE_GET_NODE "True" )
     endif()
 
+    # Bits (32|64)
+    math( EXPR BITS "${CMAKE_SIZEOF_VOID_P} * 8" ) # CMAKE_SIZEOF_VOID_P refers to target architecture.
+
+    # API json File
     set(GODOT_GDEXTENSION_API_FILE "${GODOT_GDEXTENSION_DIR}/extension_api.json")
-    if (NOT "${GODOT_CUSTOM_API_FILE}" STREQUAL "")  # User-defined override.
+    if( GODOT_CUSTOM_API_FILE )  # User-defined override.
         set(GODOT_GDEXTENSION_API_FILE "${GODOT_CUSTOM_API_FILE}")
     endif()
 
-    # Code Generation option
-    if(GODOT_GENERATE_TEMPLATE_GET_NODE)
-        set(GENERATE_BINDING_PARAMETERS "True")
-    else()
-        set(GENERATE_BINDING_PARAMETERS "False")
+    # Build Profile
+    if( GODOT_BUILD_PROFILE )
+        message( STATUS "Using build profile to trim api file")
+        message(  "\tBUILD_PROFILE = '${GODOT_BUILD_PROFILE}'")
+        message(  "\tAPI_SOURCE = '${GODOT_GDEXTENSION_API_FILE}'")
+        build_profile_generate_trimmed_api(
+                "${GODOT_BUILD_PROFILE}"
+                "${GODOT_GDEXTENSION_API_FILE}"
+                "${CMAKE_CURRENT_BINARY_DIR}/extension_api.json" )
+        set( GODOT_GDEXTENSION_API_FILE "${CMAKE_CURRENT_BINARY_DIR}/extension_api.json" )
     endif()
 
-    execute_process(COMMAND "${Python3_EXECUTABLE}" "-c" "import binding_generator; binding_generator.print_file_list('${GODOT_GDEXTENSION_API_FILE}', '${CMAKE_CURRENT_BINARY_DIR}', headers=True, sources=True)"
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-            OUTPUT_VARIABLE GENERATED_FILES_LIST
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
+    message( STATUS "GODOT_GDEXTENSION_API_FILE = '${GODOT_GDEXTENSION_API_FILE}'")
 
-    add_custom_command(OUTPUT ${GENERATED_FILES_LIST}
-            COMMAND "${Python3_EXECUTABLE}" "-c" "import binding_generator; binding_generator.generate_bindings('${GODOT_GDEXTENSION_API_FILE}', '${GENERATE_BINDING_PARAMETERS}', '${BITS}', '${GODOT_PRECISION}', '${CMAKE_CURRENT_BINARY_DIR}')"
-            VERBATIM
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-            MAIN_DEPENDENCY ${GODOT_GDEXTENSION_API_FILE}
-            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/binding_generator.py
-            COMMENT "Generating bindings"
-    )
+    # generate the file list to use
+    binding_generator_get_file_list( GENERATED_FILES_LIST
+            "${GODOT_GDEXTENSION_API_FILE}"
+            "${CMAKE_CURRENT_BINARY_DIR}" )
+
+    binding_generator_generate_bindings(
+            "${GODOT_GDEXTENSION_API_FILE}"
+            "${USE_TEMPLATE_GET_NODE}"
+            "${BITS}"
+            "${GODOT_PRECISION}"
+            "${CMAKE_CURRENT_BINARY_DIR}" )
 
     ### Platform is derived from the toolchain target
     # See GeneratorExpressions PLATFORM_ID and CMAKE_SYSTEM_NAME
     set( SYSTEM_NAME
-            $<$<PLATFORM_ID:Android>:android.${ANDROID_ABI}>
+            $<$<PLATFORM_ID:Android>:android>
             $<$<PLATFORM_ID:iOS>:ios>
             $<$<PLATFORM_ID:Linux>:linux>
             $<$<PLATFORM_ID:Darwin>:macos>
@@ -263,7 +276,8 @@ function( godotcpp_generate )
     set( DEV_TAG "$<${IS_DEV_BUILD}:.dev>" )
 
     ### Define our godot-cpp library targets
-    foreach ( TARGET_NAME template_debug template_release editor )
+    foreach ( TARGET_ALIAS template_debug template_release editor )
+        set( TARGET_NAME "godot-cpp.${TARGET_ALIAS}" )
 
         # Generator Expressions that rely on the target
         set( DEBUG_FEATURES "$<NOT:$<STREQUAL:${TARGET_NAME},template_release>>" )
@@ -271,7 +285,7 @@ function( godotcpp_generate )
 
         # the godot-cpp.* library targets
         add_library( ${TARGET_NAME} STATIC EXCLUDE_FROM_ALL )
-        add_library( godot-cpp::${TARGET_NAME} ALIAS ${TARGET_NAME} )
+        add_library( godot-cpp::${TARGET_ALIAS} ALIAS ${TARGET_NAME} )
 
         file( GLOB_RECURSE GODOTCPP_SOURCES LIST_DIRECTORIES NO CONFIGURE_DEPENDS src/*.cpp )
 
@@ -298,33 +312,36 @@ function( godotcpp_generate )
                 BUILD_RPATH_USE_ORIGIN ON
 
                 PREFIX lib
-                OUTPUT_NAME "${PROJECT_NAME}.${SYSTEM_NAME}.${TARGET_NAME}${DEV_TAG}.${SYSTEM_ARCH}"
+                OUTPUT_NAME "${PROJECT_NAME}.${SYSTEM_NAME}.${TARGET_ALIAS}${DEV_TAG}.${SYSTEM_ARCH}"
                 ARCHIVE_OUTPUT_DIRECTORY "$<1:${CMAKE_BINARY_DIR}/bin>"
 
                 # Things that are handy to know for dependent targets
                 GODOT_PLATFORM "${SYSTEM_NAME}"
-                GODOT_TARGET "${TARGET_NAME}"
+                GODOT_TARGET "${TARGET_ALIAS}"
                 GODOT_ARCH "${SYSTEM_ARCH}"
+
+                # Some IDE's respect this property to logically group targets
+                FOLDER "godot-cpp"
         )
 
         if( CMAKE_SYSTEM_NAME STREQUAL Android )
-            android_generate( ${TARGET_NAME} )
+            android_generate()
         elseif ( CMAKE_SYSTEM_NAME STREQUAL iOS )
-            ios_generate( ${TARGET_NAME} )
+            ios_generate()
         elseif ( CMAKE_SYSTEM_NAME STREQUAL Linux )
-            linux_generate( ${TARGET_NAME} )
+            linux_generate()
         elseif ( CMAKE_SYSTEM_NAME STREQUAL Darwin )
-            macos_generate( ${TARGET_NAME} )
+            macos_generate()
         elseif ( CMAKE_SYSTEM_NAME STREQUAL Emscripten )
-            web_generate( ${TARGET_NAME} )
+            web_generate()
         elseif ( CMAKE_SYSTEM_NAME STREQUAL Windows )
-            windows_generate( ${TARGET_NAME} )
+            windows_generate()
         endif ()
 
     endforeach ()
 
     # Added for backwards compatibility with prior cmake solution so that builds dont immediately break
     # from a missing target.
-    add_library( godot::cpp ALIAS template_debug )
+    add_library( godot::cpp ALIAS godot-cpp.template_debug )
 
 endfunction()
