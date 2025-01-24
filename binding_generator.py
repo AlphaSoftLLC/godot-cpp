@@ -1624,7 +1624,7 @@ def generate_engine_class_header(class_api, used_classes, fully_used_classes, us
         result.append("")
 
     if "signals" in class_api:
-        result.append('\tstatic struct Signals')
+        result.append('\tstruct Signals')
         result.append('\t{')
         for signal in class_api["signals"]:
             args_commentary = '\t\t// '
