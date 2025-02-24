@@ -38,11 +38,7 @@ namespace godot {
 
 class Variant;
 
-struct _NO_DISCARD_ Plane {
-	static const Plane PlaneYZ;
-	static const Plane PlaneXZ;
-	static const Plane PlaneXY;
-
+struct [[nodiscard]] Plane {
 	Vector3 normal;
 	real_t d = 0;
 
